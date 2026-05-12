@@ -9,10 +9,12 @@ change.
 
 ## Current Goal
 
-- Feature 03: Auth — done
+- Feature 04: Project dialogs and editor home - done
 
 ## Completed
 
+- **04-project-dialogs**: Added the `/editor` home empty state with a wired `New Project` button; added a dedicated project dialog controller/provider for create, rename, and delete dialog state, form state, and loading state; sidebar now uses mock owned/shared project data, shows rename/delete actions only for owned projects, hides shared project actions, and has a mobile backdrop scrim. No API calls or persistence added. `npm run lint` and `npm run build` pass.
+- **04-project-dialogs refinement**: Create Project slug preview now shows only the generated slug value without explanatory label text.
 - **03-auth**: Installed `@clerk/ui`; root layout wraps the app in `ClerkProvider` using Clerk `dark` theme with project CSS variables; added `/sign-in` and `/sign-up` catch-all Clerk pages with minimal responsive two-panel auth layout; added root `proxy.ts` with protected-by-default Clerk route protection and public auth routes from Clerk URL env vars; `/` redirects authenticated users to `/editor` and unauthenticated users to `/sign-in`; editor chrome moved under `/editor` layout; editor navbar includes Clerk `UserButton`; `npm run build` passes.
 - **03-auth visual refinement**: Auth screen updated to match the provided reference with a stronger two-panel layout, compact brand mark, large left-panel headline, icon-led feature list, footer copyright, centered Clerk card, and explicit Clerk appearance/font overrides using project CSS variables. `npm run build` passes.
 - **03-auth brand update**: Replaced remaining auth-page "Ghost AI" references with "SYSDES".
@@ -25,7 +27,7 @@ change.
 
 ## Next Up
 
-- Feature 04 (TBD)
+- Feature 05 (TBD)
 
 ## Open Questions
 
