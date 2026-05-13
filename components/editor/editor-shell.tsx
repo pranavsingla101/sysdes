@@ -7,6 +7,7 @@ import { EditorNavbar } from "./editor-navbar";
 import { ProjectDialogsProvider } from "./project-dialogs-provider";
 import { ProjectSidebar } from "./project-sidebar";
 import { ShareDialog } from "./share-dialog";
+import { TemplateProvider } from "./template-context";
 
 interface EditorShellProps {
   children: React.ReactNode;
@@ -32,6 +33,7 @@ export function EditorShell({
   const isOwner = ownedProjects.some((project) => project.id === activeProjectId);
 
   return (
+    <TemplateProvider>
     <ProjectDialogsProvider
       ownedProjects={ownedProjects}
       sharedProjects={sharedProjects}
@@ -60,7 +62,6 @@ export function EditorShell({
         <div
           className={[
             "transition-[padding] duration-200 ease-in-out",
-            sidebarOpen && activeProjectId ? "lg:pl-[26.75rem]" : "",
             aiSidebarOpen && activeProjectId ? "lg:[&>section>aside]:block" : "",
           ].join(" ")}
         >
@@ -68,5 +69,6 @@ export function EditorShell({
         </div>
       </main>
     </ProjectDialogsProvider>
+    </TemplateProvider>
   );
 }

@@ -132,8 +132,8 @@ export function ProjectSidebar({
 
       <aside
         className={[
-          "fixed left-1 top-16 bottom-4 z-50 flex w-[25rem] max-w-[calc(100vw-0.5rem)] flex-col overflow-hidden",
-          "rounded-3xl border border-border-default bg-bg-surface/95 shadow-2xl shadow-bg-base/40 backdrop-blur",
+          "fixed left-4 top-16 bottom-4 z-50 flex w-[25rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden",
+          "rounded-3xl border border-border-default bg-bg-surface/90 shadow-2xl shadow-bg-base/70 backdrop-blur-xl",
           "transition-transform duration-200 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]",
         ].join(" ")}

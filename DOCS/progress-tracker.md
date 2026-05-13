@@ -7,11 +7,33 @@ change.
 
 - Complete
 
-## Current Goal
-
-- Feature 09: Share dialog - done
+- Feature 18: Starter templates - Done
 
 ## Completed
+
+- **18-starter-templates modal readability refinement**: Widened the import template dialog, increased header hierarchy, and redesigned template cards so previews and descriptions have readable space. Cards now use a side-by-side preview/details layout on medium screens, a three-column wide layout on desktop, and larger type/action controls. `npx tsc --noEmit` and `npm run build` pass.
+
+- **18-starter-templates**: Added a starter template library with three pre-built diagrams (Microservices, CI/CD Pipeline, Event-Driven System). Created `components/editor/starter-templates.ts` with a `CanvasTemplate` interface and `CANVAS_TEMPLATES` array using shared canvas types and the existing node color palette. Created `components/editor/starter-templates-modal.tsx` with a scrollable two-column dialog grid; each card includes an inline SVG preview that calculates bounds from node positions, scales to fit a fixed viewport, draws edges as lines between node centers, and renders nodes using their shape and color. Created `components/editor/template-context.tsx` with a React context (`TemplateProvider`/`useTemplateModal`) to bridge the navbar button and the canvas modal without prop drilling. Added a "Templates" button to `EditorNavbar` that opens the modal via context. In `CanvasFlowSurface`, a `handleTemplateImport` function removes all existing nodes and edges via `onNodesChange`/`onEdgesChange`, adds the template's nodes and edges, then calls `fitView` to reframe the canvas. `npm run build` passes.
+
+- **17-canvas-ergonomics**: Added a pill-shaped floating control bar at the bottom-left of the canvas featuring zoom controls (out, fit, in) and history controls (undo, redo). Zoom actions are animated for smoothness. History controls are wired to Liveblocks and visually dimmed when inactive. Implemented a `useKeyboardShortcuts` hook that handles zoom (`+`/`-`), undo (`Cmd+Z`), and redo (`Cmd+Shift+Z`, `Cmd+Y`) while ignoring events from editable fields. Removed the MiniMap to reduce visual clutter.
+
+- **16-edge-behavior**: Replaced default edges with a custom `CanvasEdgeRenderer` featuring right-angle routing via `getSmoothStepPath` and consistent arrowheads defined in SVG defs. Implemented an invisible interaction path with `interactionWidth={20}` for easier hovering and selection without increasing visible stroke weight. Added double-click label editing using `EdgeLabelRenderer` and an auto-growing input. Labels sync across collaborators using `updateEdgeData`. Refined connection handles on all four node sides to be smaller (8px), subtle white dots that fade in on hover. `npm run build` passes.
+
+- **15-node-color-toolbar**: Added a floating color toolbar that appears above selected nodes. The toolbar includes swatches for the 8 predefined color pairs from `NODE_COLORS`. Selecting a swatch updates the node's background and text color using `useReactFlow().updateNodeData()`, which syncs across the collaborative state. Swatches feature hover scale and glow effects tuned to their specific text color. Used `nodrag nopan` on the toolbar to ensure it doesn't interfere with canvas navigation.
+
+- **14-node-editing**: Added resizing and inline label editing to canvas nodes. Imported `NodeResizer` from `@xyflow/react` and added it to `CanvasShapeNode` when selected. Added double-click interaction to open a text area over the label for inline editing. Label changes sync with collaborative state via `useReactFlow().updateNodeData()`. Pressing Escape or blurring the text area exits editing mode. Used `nodrag nopan` on the textarea to prevent canvas dragging while editing text.
+
+- **13-node-shape**: Updated `CanvasShapeNode` to pass `selected` to `CanvasShapeBackground`; SVG shapes (diamond, hexagon, cylinder) use accent-primary stroke and wider stroke-width when selected, CSS shapes (rectangle, pill, circle) swap `border-border-subtle` for `border-2 border-accent-primary` when selected. Added `ShapeDragGhost` component that renders a fixed-position, 55%-opacity ghost of the dragged shape type following the cursor. Suppressed the native browser drag image with a 1×1 transparent GIF via `setDragImage`. `ShapePanel` receives `onShapeDragStart`/`onShapeDragEnd` callbacks; `CanvasFlowSurface` manages `dragGhost` state, updating position on `dragOver` and clearing on drop or drag-end. `npx tsc --noEmit` and `npm run build` pass.
+
+- **12-shape-panel**: Added a bottom-center floating shape toolbar to the Liveblocks React Flow canvas with draggable icon buttons for rectangle, diamond, circle, pill, cylinder, and hexagon. Drag payloads include the selected shape and default dimensions, canvas wrapper drop handling parses the payload, converts screen coordinates with React Flow, and creates shared `canvasNode` nodes with empty labels, default node color, dragged shape data, and IDs built from shape, timestamp, and a per-shape counter. Added a basic custom canvas node renderer that displays new nodes as bordered rectangles for this unit. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+- **12-shape-panel shape rendering fix**: Updated the custom canvas node renderer to respect each node's stored `shape` value. Rectangles, circles, and pills now render with matching CSS geometry, while diamonds, cylinders, and hexagons render with inline SVG backgrounds so dropped toolbar shapes visually match the selected tool. Restored hover-visible connection handles around custom nodes. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+- **12-shape-panel canvas span fix**: Changed the workspace canvas to fill the editor surface behind floating side panels. Removed the shell's left content offset when the project sidebar is open, made the canvas an absolute full-workspace layer, and converted the AI sidebar into a right-side overlay so the dotted canvas background spans across the visible workspace. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+- **12-shape-panel floating sidebar refinement**: Added matching 16px workspace gutters to the left project sidebar and right AI sidebar, increased their backdrop blur and shadow depth, and lowered surface opacity so both panels read as floating overlays above the full-span canvas. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+
+- **11-base-canvas**: Replaced the workspace placeholder with a Liveblocks-backed React Flow canvas while keeping `app/editor/[roomId]/page.tsx` server-side. Added `components/editor/canvas-room.tsx` as the client island with `LiveblocksProvider`, `RoomProvider`, `initialPresence` cursor state, `ClientSideSuspense`, a Liveblocks connection error fallback, and `useLiveblocksFlow` with empty initial nodes and edges. Added shared canvas contracts in `types/canvas.ts` for node label/color/shape data plus `canvasNode` and `canvasEdge` types. The base canvas renders `ReactFlow` with loose connection behavior, `fitView`, `MiniMap`, and a dotted background. Added required React Flow and Liveblocks styles to `app/globals.css`. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+- **11-base-canvas CSS fix**: Moved React Flow and Liveblocks global stylesheet imports from `app/globals.css` into `app/layout.tsx` so Next loads the package CSS as module-level global CSS before the canvas renders, resolving React Flow's missing styles warning. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
+
+- **10-liveblocks-setup**: Configured `liveblocks.config.ts` with typed cursor presence, `isThinking`, and user metadata for display name, avatar URL, and cursor color. Added `@liveblocks/node`, a cached server-side Liveblocks client in `lib/liveblocks.ts`, and a deterministic user ID to cursor color helper. Added `POST /api/liveblocks-auth` to require Clerk authentication, read the requested Liveblocks room ID, verify project access through `getProjectByAccess`, create the room when needed using the project ID as the room ID, and return an identified Liveblocks token with user metadata. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
 
 - **09-share-dialog**: Added an owner-aware Share button flow in the editor navbar. The new share dialog opens from active workspaces, copies the `/editor/[projectId]` link with temporary `Copied!` feedback, lists collaborators for owners and collaborators, and restricts invite/remove controls to owners in the UI. Added `GET`, `POST`, and `DELETE /api/projects/[projectId]/collaborators` with server-side access checks: owners and collaborators can list, only owners can invite or remove, collaborator emails are stored directly in `ProjectCollaborator`, duplicate invites upsert, and owners cannot invite themselves. Added Clerk Backend API enrichment for collaborator display names and avatars, falling back to email-only display when no Clerk user is found. `npm run lint`, `npx tsc --noEmit`, and `npm run build` pass.
 
@@ -37,7 +59,8 @@ change.
 
 ## Next Up
 
-- Implement the collaborative workspace canvas when specified by the next feature.
+- Begin work on AI-assisted canvas generation features.
+- Template saving and custom user templates are explicitly out of scope for now.
 
 ## Open Questions
 

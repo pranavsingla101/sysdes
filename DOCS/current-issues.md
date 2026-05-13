@@ -1,21 +1,7 @@
-found this issue on running site:
-## Error Type
-Console Error
+fix these issues:
+1) The Diamond Tool Disconnect: As evidenced in image_2c3615.png, when the "Diamond" tool is actively selected (highlighted) in the floating toolbar, the resulting shape generated on the canvas is incorrectly rendered as a rounded rectangle.
 
-## Error Message
-(node:99500) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
-In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+Systemic Rendering Failure: This behavior is not isolated to the diamond tool. Selecting any of the available shapes from the toolbar fails to produce the advertised geometry, resulting in a rectangle every time.
 
-To prepare for this change:
-- If you want the current behavior, explicitly use 'sslmode=verify-full'
-- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-
-    at EditorLayout (<anonymous>:null:null)
-
-Next.js version: 16.2.6 (Turbopack)
-
-
+Expected Behavior
+Clicking a specific shape icon in the toolbar should map directly to the canvas rendering engine to create that exact geometric shape (e.g., clicking the diamond creates a diamond, clicking the circle creates a circle).
