@@ -59,17 +59,6 @@
 - Execution: durable background task via Trigger.dev.
 - Output: Markdown technical spec saved to the filesystem and linked to the project in the database.
 
-## Prisma v7 Notes
-
-Prisma 7 introduced breaking changes that differ from most training data and online examples:
-
-- **No `url` in schema files.** `datasource db` blocks must not include a `url` field. The connection URL for migrations is set in `prisma.config.ts` under `datasource.url`. Putting `url = env("DATABASE_URL")` in `schema.prisma` causes a hard `P1012` validation error.
-- **Client connection is constructor-injected.** The `PrismaClient` constructor accepts either `{ adapter }` (for a driver adapter like `PrismaPg`) or `{ accelerateUrl }` (for Prisma Postgres / Accelerate). There is no global URL resolution fallback.
-- **`PrismaPg` API changed.** `@prisma/adapter-pg` v7 accepts `new PrismaPg({ connectionString })` directly — passing a `pg.Pool` instance no longer works.
-- **Generator provider is `prisma-client`.** The old `prisma-client-js` provider is replaced. The generated output directory is set via `output` in the generator block (here: `app/generated/prisma`).
-- **Import from the generated path, not `@prisma/client`.** Import `PrismaClient` and generated types from `@/app/generated/prisma/client`. There is no barrel `index.ts` in the output directory; always import the specific module file.
-- **Multi-file schema is supported.** Additional `.prisma` files placed under `prisma/` (e.g. `prisma/models/project.prisma`) are composed automatically when `prisma.config.ts` sets `schema: "prisma/"`.
-
 ## Invariants
 
 1. Request handlers do not run long-lived AI work — that belongs in background tasks.

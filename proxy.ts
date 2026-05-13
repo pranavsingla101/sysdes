@@ -10,8 +10,10 @@ const isPublicRoute = createRouteMatcher([
   `${signUpRoute}(.*)`,
 ]);
 
+const isProjectApiRoute = createRouteMatcher(["/api/projects(.*)"]);
+
 export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
+  if (!isPublicRoute(request) && !isProjectApiRoute(request)) {
     await auth.protect();
   }
 });
