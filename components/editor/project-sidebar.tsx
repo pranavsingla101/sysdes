@@ -1,12 +1,11 @@
 "use client";
 
 import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import type { SerializedProject } from "@/lib/project-api";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  type MockProject,
-  useProjectDialogs,
-} from "./project-dialogs-provider";
+import { useProjectDialogs } from "./project-dialogs-provider";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
@@ -26,24 +25,24 @@ function ProjectItem({
   project,
   showActions,
 }: {
-  project: MockProject;
+  project: SerializedProject;
   showActions: boolean;
 }) {
   const { openDeleteDialog, openRenameDialog } = useProjectDialogs();
 
   return (
     <div className="group flex items-center gap-2 border-b border-border-default px-3 py-2 last:border-b-0">
-      <button
-        type="button"
+      <Link
+        href={`/editor/${project.id}`}
         className="min-w-0 flex-1 rounded-xl px-2 py-2 text-left hover:bg-bg-elevated"
       >
         <span className="block truncate text-sm font-medium text-text-primary">
           {project.name}
         </span>
         <span className="block truncate text-xs text-text-muted">
-          {project.updatedAt}
+          Updated {project.updatedAt.slice(0, 10)}
         </span>
-      </button>
+      </Link>
       {showActions && (
         <div className="flex shrink-0 items-center gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:focus-within:opacity-100">
           <Button
@@ -75,7 +74,7 @@ function ProjectList({
   label,
   showActions,
 }: {
-  projects: MockProject[];
+  projects: SerializedProject[];
   label: string;
   showActions: boolean;
 }) {

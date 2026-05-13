@@ -1,13 +1,9 @@
 "use client";
 
-import {
-  createContext,
-  type FormEvent,
-  type ReactNode,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext } from "react";
+import type { SerializedProject } from "@/lib/project-api";
+import { useProjectActions } from "@/hooks/use-project-actions";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,193 +12,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export interface MockProject {
-  id: string;
-  name: string;
-  slug: string;
-  ownerType: "owned" | "shared";
-  updatedAt: string;
-}
-
-type ProjectDialogMode = "create" | "rename" | "delete";
-
 interface ProjectDialogsContextValue {
-  ownedProjects: MockProject[];
-  sharedProjects: MockProject[];
+  ownedProjects: SerializedProject[];
+  sharedProjects: SerializedProject[];
   openCreateDialog: () => void;
-  openRenameDialog: (project: MockProject) => void;
-  openDeleteDialog: (project: MockProject) => void;
+  openRenameDialog: (project: SerializedProject) => void;
+  openDeleteDialog: (project: SerializedProject) => void;
 }
 
-const MOCK_PROJECTS: MockProject[] = [
-  {
-    id: "checkout-platform",
-    name: "Checkout Platform",
-    slug: "checkout-platform",
-    ownerType: "owned",
-    updatedAt: "Updated today",
-  },
-  {
-    id: "notification-mesh",
-    name: "Notification Mesh",
-    slug: "notification-mesh",
-    ownerType: "owned",
-    updatedAt: "Updated yesterday",
-  },
-  {
-    id: "analytics-pipeline",
-    name: "Analytics Pipeline",
-    slug: "analytics-pipeline",
-    ownerType: "shared",
-    updatedAt: "Shared by Maya",
-  },
-];
+interface ProjectDialogsProviderProps {
+  children: ReactNode;
+  ownedProjects: SerializedProject[];
+  sharedProjects: SerializedProject[];
+}
 
 const ProjectDialogsContext =
   createContext<ProjectDialogsContextValue | null>(null);
-
-function slugifyProjectName(value: string) {
-  return (
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "untitled-project"
-  );
-}
-
-function useProjectDialogController() {
-  const [projects, setProjects] = useState<MockProject[]>(MOCK_PROJECTS);
-  const [mode, setMode] = useState<ProjectDialogMode | null>(null);
-  const [selectedProject, setSelectedProject] = useState<MockProject | null>(
-    null
-  );
-  const [projectName, setProjectName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const slugPreview = useMemo(
-    () => slugifyProjectName(projectName),
-    [projectName]
-  );
-
-  const ownedProjects = projects.filter(
-    (project) => project.ownerType === "owned"
-  );
-  const sharedProjects = projects.filter(
-    (project) => project.ownerType === "shared"
-  );
-
-  function closeDialog() {
-    setMode(null);
-    setSelectedProject(null);
-    setProjectName("");
-    setIsLoading(false);
-  }
-
-  function openCreateDialog() {
-    setSelectedProject(null);
-    setProjectName("");
-    setMode("create");
-  }
-
-  function openRenameDialog(project: MockProject) {
-    setSelectedProject(project);
-    setProjectName(project.name);
-    setMode("rename");
-  }
-
-  function openDeleteDialog(project: MockProject) {
-    setSelectedProject(project);
-    setProjectName("");
-    setMode("delete");
-  }
-
-  function handleCreateProject() {
-    const name = projectName.trim() || "Untitled Project";
-    const slug = slugifyProjectName(name);
-
-    setProjects((currentProjects) => [
-      {
-        id: `${slug}-${Date.now()}`,
-        name,
-        slug,
-        ownerType: "owned",
-        updatedAt: "Updated just now",
-      },
-      ...currentProjects,
-    ]);
-  }
-
-  function handleRenameProject() {
-    if (!selectedProject) {
-      return;
-    }
-
-    const name = projectName.trim() || selectedProject.name;
-    const slug = slugifyProjectName(name);
-
-    setProjects((currentProjects) =>
-      currentProjects.map((project) =>
-        project.id === selectedProject.id
-          ? { ...project, name, slug, updatedAt: "Updated just now" }
-          : project
-      )
-    );
-  }
-
-  function handleDeleteProject() {
-    if (!selectedProject) {
-      return;
-    }
-
-    setProjects((currentProjects) =>
-      currentProjects.filter((project) => project.id !== selectedProject.id)
-    );
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
-
-    if (mode === "create") {
-      handleCreateProject();
-    }
-
-    if (mode === "rename") {
-      handleRenameProject();
-    }
-
-    if (mode === "delete") {
-      handleDeleteProject();
-    }
-
-    closeDialog();
-  }
-
-  return {
-    contextValue: {
-      ownedProjects,
-      sharedProjects,
-      openCreateDialog,
-      openRenameDialog,
-      openDeleteDialog,
-    },
-    dialogState: {
-      isOpen: mode !== null,
-      mode,
-      selectedProject,
-      projectName,
-      slugPreview,
-      isLoading,
-    },
-    setProjectName,
-    closeDialog,
-    handleSubmit,
-  };
-}
 
 export function useProjectDialogs() {
   const context = useContext(ProjectDialogsContext);
@@ -216,12 +43,24 @@ export function useProjectDialogs() {
   return context;
 }
 
-export function ProjectDialogsProvider({ children }: { children: ReactNode }) {
-  const controller = useProjectDialogController();
+export function ProjectDialogsProvider({
+  children,
+  ownedProjects,
+  sharedProjects,
+}: ProjectDialogsProviderProps) {
+  const controller = useProjectActions();
   const { dialogState } = controller;
 
   return (
-    <ProjectDialogsContext.Provider value={controller.contextValue}>
+    <ProjectDialogsContext.Provider
+      value={{
+        ownedProjects,
+        sharedProjects,
+        openCreateDialog: controller.openCreateDialog,
+        openRenameDialog: controller.openRenameDialog,
+        openDeleteDialog: controller.openDeleteDialog,
+      }}
+    >
       {children}
       <Dialog
         open={dialogState.isOpen}
@@ -254,8 +93,13 @@ export function ProjectDialogsProvider({ children }: { children: ReactNode }) {
                   />
                 </label>
                 <div className="rounded-xl border border-border-default bg-bg-surface px-3 py-2 font-mono text-sm text-brand">
-                  {dialogState.slugPreview}
+                  {dialogState.roomIdPreview}
                 </div>
+                {dialogState.errorMessage && (
+                  <p className="text-sm text-state-error">
+                    {dialogState.errorMessage}
+                  </p>
+                )}
                 <DialogFooter className="border-border-default bg-bg-surface">
                   <Button
                     type="button"
@@ -294,6 +138,11 @@ export function ProjectDialogsProvider({ children }: { children: ReactNode }) {
                     className="border-border-default bg-bg-surface text-text-primary"
                   />
                 </label>
+                {dialogState.errorMessage && (
+                  <p className="text-sm text-state-error">
+                    {dialogState.errorMessage}
+                  </p>
+                )}
                 <DialogFooter className="border-border-default bg-bg-surface">
                   <Button
                     type="button"
@@ -318,10 +167,15 @@ export function ProjectDialogsProvider({ children }: { children: ReactNode }) {
                 <DialogHeader>
                   <DialogTitle>Delete Project</DialogTitle>
                   <DialogDescription>
-                    Delete {dialogState.selectedProject.name}? This mock action
-                    removes it from the sidebar for this session.
+                    Delete {dialogState.selectedProject.name}? This removes the
+                    project for everyone with access.
                   </DialogDescription>
                 </DialogHeader>
+                {dialogState.errorMessage && (
+                  <p className="text-sm text-state-error">
+                    {dialogState.errorMessage}
+                  </p>
+                )}
                 <DialogFooter className="border-border-default bg-bg-surface">
                   <Button
                     type="button"
