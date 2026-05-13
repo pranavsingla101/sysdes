@@ -41,6 +41,14 @@
 - Do not store large generated content directly in the database.
 - Task run records are first-class relational data — treat ownership and run IDs as verified before any token issuance.
 
+## Prisma Usage (v7)
+
+- Always import `PrismaClient` and generated types from `@/app/generated/prisma/client` — never from `@prisma/client` or from the bare `@/app/generated/prisma` path (no barrel index exists).
+- Use the singleton in `lib/prisma.ts` everywhere — never instantiate `PrismaClient` directly in route handlers or components.
+- Do not add `url` to `datasource db` blocks in any `.prisma` file. The migration URL lives exclusively in `prisma.config.ts`.
+- When constructing `PrismaPg`, pass `{ connectionString }` directly — do not wrap in a `pg.Pool`.
+- After adding or changing models, run `npx prisma migrate dev --name <name>` then `npx prisma generate` before building.
+
 ## File Organization
 
 - `lib/` — shared infrastructure: Prisma client, auth helpers, utilities.

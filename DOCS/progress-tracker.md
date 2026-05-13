@@ -9,10 +9,11 @@ change.
 
 ## Current Goal
 
-- Feature 04: Project dialogs and editor home - done
+- Feature 05: Prisma models, client singleton, and initial migration - done
 
 ## Completed
 
+- **05-prisma**: Created `prisma/models/project.prisma` with `Project` (ownerId, name, description, status enum DRAFT/ARCHIVED, canvasJsonPath, timestamps, indexes on ownerId and createdAt) and `ProjectCollaborator` (projectId cascade-delete relation, email, createdAt, unique on project/email, indexes on email and project/date); created `lib/prisma.ts` as a cached singleton that branches on `DATABASE_URL` — `prisma+postgres://` uses Accelerate (`{ accelerateUrl }`), otherwise `@prisma/adapter-pg` with `PrismaPg({ connectionString })`; ran `prisma migrate dev --name init` and `prisma generate`; `npm run build` passes. Note: Prisma v7 no longer allows `url` in schema.prisma datasource block — URL is configured in `prisma.config.ts` for migrations and passed via adapter/accelerateUrl to the client constructor.
 - **04-project-dialogs**: Added the `/editor` home empty state with a wired `New Project` button; added a dedicated project dialog controller/provider for create, rename, and delete dialog state, form state, and loading state; sidebar now uses mock owned/shared project data, shows rename/delete actions only for owned projects, hides shared project actions, and has a mobile backdrop scrim. No API calls or persistence added. `npm run lint` and `npm run build` pass.
 - **04-project-dialogs refinement**: Create Project slug preview now shows only the generated slug value without explanatory label text.
 - **03-auth**: Installed `@clerk/ui`; root layout wraps the app in `ClerkProvider` using Clerk `dark` theme with project CSS variables; added `/sign-in` and `/sign-up` catch-all Clerk pages with minimal responsive two-panel auth layout; added root `proxy.ts` with protected-by-default Clerk route protection and public auth routes from Clerk URL env vars; `/` redirects authenticated users to `/editor` and unauthenticated users to `/sign-in`; editor chrome moved under `/editor` layout; editor navbar includes Clerk `UserButton`; `npm run build` passes.
@@ -27,7 +28,7 @@ change.
 
 ## Next Up
 
-- Feature 05 (TBD)
+- Feature 06 (TBD)
 
 ## Open Questions
 
