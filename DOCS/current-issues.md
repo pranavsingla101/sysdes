@@ -1,7 +1,8 @@
-fix these issues:
-1) The Diamond Tool Disconnect: As evidenced in image_2c3615.png, when the "Diamond" tool is actively selected (highlighted) in the floating toolbar, the resulting shape generated on the canvas is incorrectly rendered as a rounded rectangle.
+## Issues
 
-Systemic Rendering Failure: This behavior is not isolated to the diamond tool. Selecting any of the available shapes from the toolbar fails to produce the advertised geometry, resulting in a rectangle every time.
 
-Expected Behavior
-Clicking a specific shape icon in the toolbar should map directly to the canvas rendering engine to create that exact geometric shape (e.g., clicking the diamond creates a diamond, clicking the circle creates a circle).
+### 1. Collaborators 
+check clerk agent skills before implementing this.
+This is a fix in the UI.
+currently the collaborators are shown with a hover over the canvas, just below the navbar.
+instead of showing below the navbar, show the collaborators on the navbar, you should be able to click to expand and see all the collaborators on the canvas/project. when it is minimized it only shows your logo.

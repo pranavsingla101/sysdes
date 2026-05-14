@@ -7,9 +7,13 @@ change.
 
 - Complete
 
-- Feature 18: Starter templates - Done
-
 ## Completed
+
+- **21-canvas-autosave**: Implemented a full persistence loop for the collaborative canvas. Re-mapped the Prisma `Project` model to use `canvasBlobUrl` for external storage. Developed a Next.js route handler (`/api/projects/[projectId]/canvas`) that leverages `@vercel/blob` for JSON storage and Prisma for metadata. Built a custom `useAutosave` hook with a 3-second debounce to prevent write-thrashing. Integrated a global `SaveProvider` context to sync save status (Saving, Saved, Error, Syncing) across the editor UI. Updated `EditorNavbar` with a visual save status pill and implemented an "Empty Room" detection logic in `CanvasRoom` to automatically restore saved state from blob storage on mount. `npx tsc --noEmit` and `npm run build` pass.
+
+- **20-ai-sidebar-shell**: Separated the AI sidebar into a standalone `AiSidebar` component and integrated it into the `EditorShell`. Implemented a tabbed interface using shadcn `Tabs` for "AI Architect" and "Specs". The AI Architect tab features a scrollable chat area, an empty state with starter prompt chips, and a functional auto-resizing textarea (72px to 160px). The Specs tab includes a "Generate Spec" action and a demo spec card. Preserved the floating overlay design with smooth slide-in animations and backdrop blur, using project color tokens throughout. Removed the old placeholder from the project workspace page. `npx tsc --noEmit` and `npm run build` pass.
+
+- **19-presence-avatars-cursor**: Implemented real-time collaboration indicators. Created `components/editor/presence-avatars.tsx` featuring an overlapping stack of collaborator avatars (profile photos or initials fallback), a overflow chip (+N), and integrated the Clerk `UserButton` into the group with a conditional divider. Created `components/editor/live-cursors.tsx` to render participant pointers and name badges using their specific presence colors. Updated `components/editor/canvas-room.tsx` to broadcast cursor positions via Liveblocks presence on React Flow `onMouseMove` and clear them on `onMouseLeave`. Integrated the avatars as a floating UI in the top-right of the canvas area. Updated `EditorNavbar` to hide its redundant `UserButton` when a project workspace is active. Renamed `isThinking` to `thinking` in `liveblocks.config.ts` per spec. `npm run build` passes.
 
 - **18-starter-templates modal readability refinement**: Widened the import template dialog, increased header hierarchy, and redesigned template cards so previews and descriptions have readable space. Cards now use a side-by-side preview/details layout on medium screens, a three-column wide layout on desktop, and larger type/action controls. `npx tsc --noEmit` and `npm run build` pass.
 

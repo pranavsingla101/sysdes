@@ -6,11 +6,13 @@ import {
   type ErrorInfo,
   type ReactNode,
   useState,
+  useEffect,
+  useRef,
 } from "react";
 import { LiveblocksProvider, RoomProvider } from "@liveblocks/react";
 import { ClientSideSuspense } from "@liveblocks/react/suspense";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
-import { useUndo, useRedo } from "@liveblocks/react/suspense";
+import { useUndo, useRedo, useUpdateMyPresence } from "@liveblocks/react/suspense";
 import {
   Circle,
   Database,
@@ -19,6 +21,11 @@ import {
   Pill,
   RectangleHorizontal,
   type LucideIcon,
+  Bot,
+  FileText,
+  LayoutTemplate,
+  Loader2,
+  MousePointer2,
 } from "lucide-react";
 import {
   Background,
@@ -38,6 +45,8 @@ import {
   NodeResizer,
 } from "@xyflow/react";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useAutosave } from "@/hooks/use-autosave";
+import { useSaveStatus } from "./save-context";
 import { CanvasControls } from "./canvas-controls";
 import {
   NODE_COLORS,
@@ -51,6 +60,8 @@ import { CanvasEdge as CanvasEdgeRenderer } from "./canvas-edge";
 import { StarterTemplatesModal } from "./starter-templates-modal";
 import { useTemplateModal } from "./template-context";
 import type { CanvasTemplate } from "./starter-templates";
+import { PresenceAvatars } from "./presence-avatars";
+import { LiveCursors } from "./live-cursors";
 
 
 
@@ -161,11 +172,11 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
         id={roomId}
-        initialPresence={{ cursor: null, isThinking: false }}
+        initialPresence={{ cursor: null, thinking: false }}
       >
         <CanvasErrorBoundary>
           <ClientSideSuspense fallback={<CanvasLoading />}>
-            <CanvasFlow />
+            <CanvasFlow roomId={roomId} />
           </ClientSideSuspense>
         </CanvasErrorBoundary>
       </RoomProvider>
@@ -183,7 +194,7 @@ function CanvasLoading() {
   );
 }
 
-function CanvasFlow() {
+function CanvasFlow({ roomId }: { roomId: string }) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
       suspense: true,
@@ -198,6 +209,7 @@ function CanvasFlow() {
   return (
     <ReactFlowProvider>
       <CanvasFlowSurface
+        roomId={roomId}
         edges={edges}
         nodes={nodes}
         onConnect={onConnect}
@@ -210,6 +222,7 @@ function CanvasFlow() {
 }
 
 interface CanvasFlowSurfaceProps {
+  roomId: string;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   onNodesChange: OnNodesChange<CanvasNode>;
@@ -219,6 +232,7 @@ interface CanvasFlowSurfaceProps {
 }
 
 function CanvasFlowSurface({
+  roomId,
   nodes,
   edges,
   onNodesChange,
@@ -236,6 +250,50 @@ function CanvasFlowSurface({
 
   const undo = useUndo();
   const redo = useRedo();
+  const updateMyPresence = useUpdateMyPresence();
+
+  const { status: autosaveStatus, save: saveNow } = useAutosave(roomId, nodes, edges);
+  const { setStatus, registerSaveHandler } = useSaveStatus();
+  const hasLoadedRef = useRef(false);
+
+  useEffect(() => {
+    setStatus(autosaveStatus);
+  }, [autosaveStatus, setStatus]);
+
+  useEffect(() => {
+    registerSaveHandler(saveNow);
+  }, [saveNow, registerSaveHandler]);
+
+  useEffect(() => {
+    async function loadSavedState() {
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
+
+      // Only load if room is empty to avoid overwriting active collaboration
+      if (nodes.length === 0 && edges.length === 0) {
+        try {
+          const response = await fetch(`/api/projects/${roomId}/canvas`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.nodes?.length > 0 || data.edges?.length > 0) {
+              onNodesChange(
+                data.nodes.map((node: CanvasNode) => ({ type: "add", item: node }))
+              );
+              onEdgesChange(
+                data.edges.map((edge: CanvasEdge) => ({ type: "add", item: edge }))
+              );
+              // Small delay to allow nodes to mount before fitting view
+              setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading saved canvas:", error);
+        }
+      }
+    }
+
+    loadSavedState();
+  }, [roomId, onNodesChange, onEdgesChange, fitView, nodes.length, edges.length]);
 
   useKeyboardShortcuts({
     undo,
@@ -250,6 +308,20 @@ function CanvasFlowSurface({
     onNodesChange(template.nodes.map((node) => ({ type: "add" as const, item: node })));
     onEdgesChange(template.edges.map((edge) => ({ type: "add" as const, item: edge })));
     setTimeout(() => fitView({ padding: 0.1, duration: 400 }), 80);
+  }
+
+  function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    updateMyPresence({
+      cursor: {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      },
+    });
+  }
+
+  function handleMouseLeave() {
+    updateMyPresence({ cursor: null });
   }
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
@@ -302,7 +374,13 @@ function CanvasFlowSurface({
   }
 
   return (
-    <div className="relative h-full" onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div
+      className="relative h-full"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <ReactFlow
         className="bg-bg-base"
         nodes={nodes}
@@ -344,7 +422,9 @@ function CanvasFlowSurface({
           variant={BackgroundVariant.Dots}
         />
         <CanvasControls />
+        <LiveCursors />
       </ReactFlow>
+      <PresenceAvatars />
       <ShapePanel
         onShapeDragStart={(shape) =>
           setDragGhost({ shape, x: 0, y: 0 })
@@ -692,28 +772,14 @@ function ShapeDragGhost({ shape, x, y }: ShapeDragGhostProps) {
 }
 
 function NodeConnectionHandles() {
+  const handleClass =
+    "!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100";
   return (
     <>
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Top}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Right}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Bottom}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Left}
-        type="source"
-      />
+      <Handle id="top" className={handleClass} position={Position.Top} type="source" />
+      <Handle id="right" className={handleClass} position={Position.Right} type="source" />
+      <Handle id="bottom" className={handleClass} position={Position.Bottom} type="source" />
+      <Handle id="left" className={handleClass} position={Position.Left} type="source" />
     </>
   );
 }
