@@ -7,7 +7,7 @@ export interface SerializedProject {
   name: string;
   description: string | null;
   status: Project["status"];
-  canvasJsonPath: string | null;
+  canvasBlobUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,7 +24,7 @@ export function serializeProject(project: Project): SerializedProject {
     name: project.name,
     description: project.description,
     status: project.status,
-    canvasJsonPath: project.canvasJsonPath,
+    canvasBlobUrl: project.canvasBlobUrl,
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
   };

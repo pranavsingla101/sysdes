@@ -6,11 +6,14 @@ import {
   type ErrorInfo,
   type ReactNode,
   useState,
+  useEffect,
+  useRef,
 } from "react";
 import { LiveblocksProvider, RoomProvider } from "@liveblocks/react";
 import { ClientSideSuspense } from "@liveblocks/react/suspense";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
-import { useUndo, useRedo } from "@liveblocks/react/suspense";
+import { useUndo, useRedo, useUpdateMyPresence, useEventListener, useStorage, useMutation, useSelf } from "@liveblocks/react/suspense";
+import { LiveList } from "@liveblocks/client";
 import {
   Circle,
   Database,
@@ -19,6 +22,11 @@ import {
   Pill,
   RectangleHorizontal,
   type LucideIcon,
+  Bot,
+  FileText,
+  LayoutTemplate,
+  Loader2,
+  MousePointer2,
 } from "lucide-react";
 import {
   Background,
@@ -38,6 +46,8 @@ import {
   NodeResizer,
 } from "@xyflow/react";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useAutosave } from "@/hooks/use-autosave";
+import { useSaveStatus } from "./save-context";
 import { CanvasControls } from "./canvas-controls";
 import {
   NODE_COLORS,
@@ -51,6 +61,10 @@ import { CanvasEdge as CanvasEdgeRenderer } from "./canvas-edge";
 import { StarterTemplatesModal } from "./starter-templates-modal";
 import { useTemplateModal } from "./template-context";
 import type { CanvasTemplate } from "./starter-templates";
+import { PresenceAvatars } from "./presence-avatars";
+import { LiveCursors } from "./live-cursors";
+import { useAiRoom } from "./ai-room-context";
+import { validateAiStatusPayload, validateAiChatMessage, type AiChatMessage } from "@/types/tasks";
 
 
 
@@ -161,11 +175,12 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
         id={roomId}
-        initialPresence={{ cursor: null, isThinking: false }}
+        initialPresence={{ cursor: null, thinking: false }}
+        initialStorage={{ aiChat: new LiveList([]) }}
       >
         <CanvasErrorBoundary>
           <ClientSideSuspense fallback={<CanvasLoading />}>
-            <CanvasFlow />
+            <CanvasFlow roomId={roomId} />
           </ClientSideSuspense>
         </CanvasErrorBoundary>
       </RoomProvider>
@@ -183,7 +198,7 @@ function CanvasLoading() {
   );
 }
 
-function CanvasFlow() {
+function CanvasFlow({ roomId }: { roomId: string }) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
       suspense: true,
@@ -198,6 +213,7 @@ function CanvasFlow() {
   return (
     <ReactFlowProvider>
       <CanvasFlowSurface
+        roomId={roomId}
         edges={edges}
         nodes={nodes}
         onConnect={onConnect}
@@ -210,6 +226,7 @@ function CanvasFlow() {
 }
 
 interface CanvasFlowSurfaceProps {
+  roomId: string;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   onNodesChange: OnNodesChange<CanvasNode>;
@@ -219,6 +236,7 @@ interface CanvasFlowSurfaceProps {
 }
 
 function CanvasFlowSurface({
+  roomId,
   nodes,
   edges,
   onNodesChange,
@@ -236,6 +254,95 @@ function CanvasFlowSurface({
 
   const undo = useUndo();
   const redo = useRedo();
+  const updateMyPresence = useUpdateMyPresence();
+
+  const { status: autosaveStatus, save: saveNow } = useAutosave(roomId, nodes, edges);
+  const { setStatus, registerSaveHandler } = useSaveStatus();
+  const {
+    setAiThinking: setContextAiThinking,
+    setLatestStatus: setContextLatestStatus,
+    setChatMessages,
+    setSenderName,
+    registerSendMessage,
+    registerGetCanvasSnapshot,
+  } = useAiRoom();
+  const hasLoadedRef = useRef(false);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
+
+  const self = useSelf();
+  const rawMessages = useStorage((root) => root.aiChat);
+
+  const sendToStorage = useMutation(({ storage }, msg: AiChatMessage) => {
+    const chat = storage.get("aiChat");
+    if (!chat) return;
+    chat.push(msg);
+  }, []);
+
+  useEffect(() => {
+    const name = self?.info?.displayName;
+    if (name) setSenderName(name);
+  }, [self?.info?.displayName, setSenderName]);
+
+  useEffect(() => {
+    const validated = (rawMessages ?? [])
+      .map(validateAiChatMessage)
+      .filter((m): m is AiChatMessage => m !== null);
+    setChatMessages(validated);
+  }, [rawMessages, setChatMessages]);
+
+  useEffect(() => {
+    registerSendMessage(sendToStorage);
+  }, [sendToStorage, registerSendMessage]);
+
+  useEffect(() => {
+    registerGetCanvasSnapshot(() => ({
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+    }));
+  }, [registerGetCanvasSnapshot]);
+
+  useEffect(() => {
+    setStatus(autosaveStatus);
+  }, [autosaveStatus, setStatus]);
+
+  useEffect(() => {
+    registerSaveHandler(saveNow);
+  }, [saveNow, registerSaveHandler]);
+
+  useEffect(() => {
+    async function loadSavedState() {
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
+
+      // Only load if room is empty to avoid overwriting active collaboration
+      if (nodes.length === 0 && edges.length === 0) {
+        try {
+          const response = await fetch(`/api/projects/${roomId}/canvas`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.nodes?.length > 0 || data.edges?.length > 0) {
+              onNodesChange(
+                data.nodes.map((node: CanvasNode) => ({ type: "add", item: node }))
+              );
+              onEdgesChange(
+                data.edges.map((edge: CanvasEdge) => ({ type: "add", item: edge }))
+              );
+              // Small delay to allow nodes to mount before fitting view
+              setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 100);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading saved canvas:", error);
+        }
+      }
+    }
+
+    loadSavedState();
+  }, [roomId, onNodesChange, onEdgesChange, fitView, nodes.length, edges.length]);
 
   useKeyboardShortcuts({
     undo,
@@ -244,12 +351,110 @@ function CanvasFlowSurface({
     zoomOut,
   });
 
+  const [aiStatus, setAiStatus] = useState<{
+    message: string;
+    phase: "start" | "processing" | "complete" | "error";
+  } | null>(null);
+  const [aiThinking, setAiThinking] = useState(false);
+
+  useEventListener(({ event }) => {
+    if (event.type === "AI_THINKING") {
+      setAiThinking(event.isThinking);
+      setContextAiThinking(event.isThinking);
+      if (!event.isThinking) {
+        setTimeout(() => {
+          setAiStatus(null);
+          setContextLatestStatus(null);
+        }, 3000);
+      }
+    }
+
+    if (event.type === "AI_STATUS") {
+      setAiStatus({ message: event.message, phase: event.phase });
+      const payload = validateAiStatusPayload({ text: event.message, phase: event.phase });
+      if (payload) setContextLatestStatus(payload);
+    }
+
+    if (event.type === "AI_CANVAS_OPS") {
+      const nodeChanges: Parameters<typeof onNodesChange>[0] = [];
+      const edgeChanges: Parameters<typeof onEdgesChange>[0] = [];
+
+      for (const op of event.operations) {
+        if (op.action === "add_node") {
+          const newNode: CanvasNode = {
+            id: op.node.id,
+            type: "canvasNode",
+            position: { x: op.node.x, y: op.node.y },
+            width: op.node.width,
+            height: op.node.height,
+            data: {
+              label: op.node.label,
+              color: op.node.colorFill as CanvasNode["data"]["color"],
+              shape: op.node.shape as CanvasNode["data"]["shape"],
+            },
+          };
+          nodeChanges.push({ type: "add", item: newNode });
+        } else if (op.action === "delete_node") {
+          nodeChanges.push({ type: "remove", id: op.nodeId });
+        } else if (op.action === "move_node") {
+          nodeChanges.push({ type: "position", id: op.nodeId, position: { x: op.x, y: op.y }, dragging: false });
+        } else if (op.action === "resize_node") {
+          nodeChanges.push({ type: "dimensions", id: op.nodeId, dimensions: { width: op.width, height: op.height }, setAttributes: false });
+        } else if (op.action === "update_node_data") {
+          const existing = nodes.find((n) => n.id === op.nodeId);
+          if (existing) {
+            const updated: CanvasNode = {
+              ...existing,
+              data: {
+                ...existing.data,
+                ...(op.label !== undefined ? { label: op.label } : {}),
+                ...(op.colorFill !== undefined ? { color: op.colorFill as CanvasNode["data"]["color"] } : {}),
+                ...(op.shape !== undefined ? { shape: op.shape as CanvasNode["data"]["shape"] } : {}),
+              },
+            };
+            nodeChanges.push({ type: "replace", id: op.nodeId, item: updated });
+          }
+        } else if (op.action === "add_edge") {
+          const newEdge: CanvasEdge = {
+            id: op.edge.id,
+            type: "canvasEdge",
+            source: op.edge.source,
+            target: op.edge.target,
+            data: { label: op.edge.label },
+          };
+          edgeChanges.push({ type: "add", item: newEdge });
+        } else if (op.action === "delete_edge") {
+          edgeChanges.push({ type: "remove", id: op.edgeId });
+        }
+      }
+
+      if (nodeChanges.length > 0) onNodesChange(nodeChanges);
+      if (edgeChanges.length > 0) onEdgesChange(edgeChanges);
+
+      setTimeout(() => fitView({ padding: 0.15, duration: 500 }), 150);
+    }
+  });
+
   function handleTemplateImport(template: CanvasTemplate) {
     onNodesChange(nodes.map((node) => ({ type: "remove" as const, id: node.id })));
     onEdgesChange(edges.map((edge) => ({ type: "remove" as const, id: edge.id })));
     onNodesChange(template.nodes.map((node) => ({ type: "add" as const, item: node })));
     onEdgesChange(template.edges.map((edge) => ({ type: "add" as const, item: edge })));
     setTimeout(() => fitView({ padding: 0.1, duration: 400 }), 80);
+  }
+
+  function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    updateMyPresence({
+      cursor: {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      },
+    });
+  }
+
+  function handleMouseLeave() {
+    updateMyPresence({ cursor: null });
   }
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
@@ -302,7 +507,13 @@ function CanvasFlowSurface({
   }
 
   return (
-    <div className="relative h-full" onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div
+      className="relative h-full"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       <ReactFlow
         className="bg-bg-base"
         nodes={nodes}
@@ -344,7 +555,9 @@ function CanvasFlowSurface({
           variant={BackgroundVariant.Dots}
         />
         <CanvasControls />
+        <LiveCursors />
       </ReactFlow>
+      <PresenceAvatars />
       <ShapePanel
         onShapeDragStart={(shape) =>
           setDragGhost({ shape, x: 0, y: 0 })
@@ -363,6 +576,7 @@ function CanvasFlowSurface({
         onClose={closeTemplates}
         onImport={handleTemplateImport}
       />
+      <AiStatusOverlay status={aiStatus} thinking={aiThinking} />
     </div>
   );
 }
@@ -692,29 +906,46 @@ function ShapeDragGhost({ shape, x, y }: ShapeDragGhostProps) {
 }
 
 function NodeConnectionHandles() {
+  const handleClass =
+    "!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100";
   return (
     <>
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Top}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Right}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Bottom}
-        type="source"
-      />
-      <Handle
-        className="!h-2 !w-2 !border !border-bg-base !bg-text-primary !opacity-0 transition group-hover:!opacity-100"
-        position={Position.Left}
-        type="source"
-      />
+      <Handle id="top" className={handleClass} position={Position.Top} type="source" />
+      <Handle id="right" className={handleClass} position={Position.Right} type="source" />
+      <Handle id="bottom" className={handleClass} position={Position.Bottom} type="source" />
+      <Handle id="left" className={handleClass} position={Position.Left} type="source" />
     </>
   );
 }
 
+interface AiStatusOverlayProps {
+  status: { message: string; phase: "start" | "processing" | "complete" | "error" } | null;
+  thinking: boolean;
+}
+
+function AiStatusOverlay({ status, thinking }: AiStatusOverlayProps) {
+  if (!status && !thinking) return null;
+
+  const phaseColor =
+    status?.phase === "error"
+      ? "border-state-error/40 bg-state-error/10 text-state-error"
+      : status?.phase === "complete"
+      ? "border-state-success/40 bg-state-success/10 text-state-success"
+      : "border-accent-ai/30 bg-accent-ai/10 text-accent-ai-text";
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-5 z-20 -translate-x-1/2">
+      <div
+        className={cn(
+          "flex items-center gap-2.5 rounded-full border px-4 py-2 text-sm font-medium shadow-xl backdrop-blur-sm",
+          phaseColor
+        )}
+      >
+        {thinking && status?.phase !== "complete" && status?.phase !== "error" && (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+        )}
+        <span>{status?.message ?? "AI is thinking…"}</span>
+      </div>
+    </div>
+  );
+}
