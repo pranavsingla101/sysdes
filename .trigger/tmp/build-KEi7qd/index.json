@@ -1,0 +1,30 @@
+{
+  "configPath": "C:\\Users\\LENOVO\\Documents\\project\\sysdes\\.trigger\\tmp\\build-KEi7qd\\Documents\\project\\sysdes\\trigger.config.mjs",
+  "customConditions": [
+  ],
+  "prompts": [
+  ],
+  "queues": [
+  ],
+  "runtime": "node",
+  "runtimeVersion": "24.12.0",
+  "tasks": [
+    {
+      "entryPoint": "C:\\Users\\LENOVO\\Documents\\project\\sysdes\\.trigger\\tmp\\build-KEi7qd\\Documents\\project\\sysdes\\trigger\\design-agent.mjs",
+      "filePath": "trigger/design-agent.ts",
+      "id": "design-agent",
+      "maxDuration": 300,
+      "retry": {
+        "factor": 2,
+        "maxAttempts": 3,
+        "maxTimeoutInMs": 30000,
+        "minTimeoutInMs": 1000,
+        "randomize": true
+      }
+    }
+  ],
+  "timings": {
+    "trigger/design-agent.ts": 174.28120000000013
+  },
+  "workerEntryPoint": "C:\\Users\\LENOVO\\Documents\\project\\sysdes\\.trigger\\tmp\\build-KEi7qd\\AppData\\Local\\npm-cache\\_npx\\f51a09bd0abf5f10\\node_modules\\trigger.dev\\dist\\esm\\entryPoints\\dev-run-worker.mjs"
+}

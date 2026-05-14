@@ -7,6 +7,8 @@ import { serializeProject, type SerializedProject } from "@/lib/project-api";
 export interface CurrentProjectIdentity {
   userId: string;
   primaryEmail: string | null;
+  displayName: string;
+  avatarUrl: string;
 }
 
 export async function getCurrentProjectIdentity(): Promise<CurrentProjectIdentity | null> {
@@ -21,6 +23,8 @@ export async function getCurrentProjectIdentity(): Promise<CurrentProjectIdentit
   return {
     userId,
     primaryEmail: user?.primaryEmailAddress?.emailAddress.toLowerCase() ?? null,
+    displayName: user?.fullName ?? user?.username ?? user?.primaryEmailAddress?.emailAddress ?? "Collaborator",
+    avatarUrl: user?.imageUrl ?? "",
   };
 }
 

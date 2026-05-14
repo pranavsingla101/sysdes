@@ -1,4 +1,3 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { cursorColorForUser, getLiveblocksClient } from "@/lib/liveblocks";
 import { errorResponse } from "@/lib/project-api";
 import {
@@ -29,21 +28,16 @@ export async function POST(request: Request) {
     return roomId;
   }
 
-  const project = await getProjectByAccess(roomId, identity);
+  const [project, liveblocks] = await Promise.all([
+    getProjectByAccess(roomId, identity),
+    Promise.resolve(getLiveblocksClient()),
+  ]);
 
   if (!project) {
     return errorResponse("Forbidden", 403);
   }
 
-  const user = await currentUser();
-  const displayName =
-    user?.fullName ??
-    user?.username ??
-    identity.primaryEmail ??
-    "Collaborator";
-  const avatarUrl = user?.imageUrl ?? "";
   const cursorColor = cursorColorForUser(identity.userId);
-  const liveblocks = getLiveblocksClient();
 
   await liveblocks.getOrCreateRoom(roomId, {
     defaultAccesses: ["room:write"],
@@ -60,8 +54,8 @@ export async function POST(request: Request) {
     },
     {
       userInfo: {
-        displayName,
-        avatarUrl,
+        displayName: identity.displayName,
+        avatarUrl: identity.avatarUrl,
         cursorColor,
       },
     }

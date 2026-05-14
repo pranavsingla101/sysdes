@@ -10,6 +10,7 @@ import { ShareDialog } from "./share-dialog";
 import { TemplateProvider } from "./template-context";
 import { SaveProvider } from "./save-context";
 import { AiSidebar } from "./ai-sidebar";
+import { AiRoomProvider } from "./ai-room-context";
 
 interface EditorShellProps {
   children: React.ReactNode;
@@ -35,6 +36,7 @@ export function EditorShell({
   const isOwner = ownedProjects.some((project) => project.id === activeProjectId);
 
   return (
+    <AiRoomProvider>
     <TemplateProvider>
     <SaveProvider>
     <ProjectDialogsProvider
@@ -64,6 +66,8 @@ export function EditorShell({
       <AiSidebar
         isOpen={aiSidebarOpen && !!activeProjectId}
         onClose={() => setAiSidebarOpen(false)}
+        projectId={activeProjectId ?? null}
+        roomId={activeProjectId ?? null}
       />
       <main className="flex-1 pt-14">
         <div>
@@ -73,5 +77,6 @@ export function EditorShell({
     </ProjectDialogsProvider>
     </SaveProvider>
     </TemplateProvider>
+    </AiRoomProvider>
   );
 }

@@ -12,7 +12,8 @@ import {
 import { LiveblocksProvider, RoomProvider } from "@liveblocks/react";
 import { ClientSideSuspense } from "@liveblocks/react/suspense";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
-import { useUndo, useRedo, useUpdateMyPresence } from "@liveblocks/react/suspense";
+import { useUndo, useRedo, useUpdateMyPresence, useEventListener, useStorage, useMutation, useSelf } from "@liveblocks/react/suspense";
+import { LiveList } from "@liveblocks/client";
 import {
   Circle,
   Database,
@@ -62,6 +63,8 @@ import { useTemplateModal } from "./template-context";
 import type { CanvasTemplate } from "./starter-templates";
 import { PresenceAvatars } from "./presence-avatars";
 import { LiveCursors } from "./live-cursors";
+import { useAiRoom } from "./ai-room-context";
+import { validateAiStatusPayload, validateAiChatMessage, type AiChatMessage } from "@/types/tasks";
 
 
 
@@ -173,6 +176,7 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
       <RoomProvider
         id={roomId}
         initialPresence={{ cursor: null, thinking: false }}
+        initialStorage={{ aiChat: new LiveList([]) }}
       >
         <CanvasErrorBoundary>
           <ClientSideSuspense fallback={<CanvasLoading />}>
@@ -254,7 +258,39 @@ function CanvasFlowSurface({
 
   const { status: autosaveStatus, save: saveNow } = useAutosave(roomId, nodes, edges);
   const { setStatus, registerSaveHandler } = useSaveStatus();
+  const {
+    setAiThinking: setContextAiThinking,
+    setLatestStatus: setContextLatestStatus,
+    setChatMessages,
+    setSenderName,
+    registerSendMessage,
+  } = useAiRoom();
   const hasLoadedRef = useRef(false);
+
+  const self = useSelf();
+  const rawMessages = useStorage((root) => root.aiChat);
+
+  const sendToStorage = useMutation(({ storage }, msg: AiChatMessage) => {
+    const chat = storage.get("aiChat");
+    if (!chat) return;
+    chat.push(msg);
+  }, []);
+
+  useEffect(() => {
+    const name = self?.info?.displayName;
+    if (name) setSenderName(name);
+  }, [self?.info?.displayName, setSenderName]);
+
+  useEffect(() => {
+    const validated = (rawMessages ?? [])
+      .map(validateAiChatMessage)
+      .filter((m): m is AiChatMessage => m !== null);
+    setChatMessages(validated);
+  }, [rawMessages, setChatMessages]);
+
+  useEffect(() => {
+    registerSendMessage(sendToStorage);
+  }, [sendToStorage, registerSendMessage]);
 
   useEffect(() => {
     setStatus(autosaveStatus);
@@ -300,6 +336,90 @@ function CanvasFlowSurface({
     redo,
     zoomIn,
     zoomOut,
+  });
+
+  const [aiStatus, setAiStatus] = useState<{
+    message: string;
+    phase: "start" | "processing" | "complete" | "error";
+  } | null>(null);
+  const [aiThinking, setAiThinking] = useState(false);
+
+  useEventListener(({ event }) => {
+    if (event.type === "AI_THINKING") {
+      setAiThinking(event.isThinking);
+      setContextAiThinking(event.isThinking);
+      if (!event.isThinking) {
+        setTimeout(() => {
+          setAiStatus(null);
+          setContextLatestStatus(null);
+        }, 3000);
+      }
+    }
+
+    if (event.type === "AI_STATUS") {
+      setAiStatus({ message: event.message, phase: event.phase });
+      const payload = validateAiStatusPayload({ text: event.message, phase: event.phase });
+      if (payload) setContextLatestStatus(payload);
+    }
+
+    if (event.type === "AI_CANVAS_OPS") {
+      const nodeChanges: Parameters<typeof onNodesChange>[0] = [];
+      const edgeChanges: Parameters<typeof onEdgesChange>[0] = [];
+
+      for (const op of event.operations) {
+        if (op.action === "add_node") {
+          const newNode: CanvasNode = {
+            id: op.node.id,
+            type: "canvasNode",
+            position: { x: op.node.x, y: op.node.y },
+            width: op.node.width,
+            height: op.node.height,
+            data: {
+              label: op.node.label,
+              color: op.node.colorFill as CanvasNode["data"]["color"],
+              shape: op.node.shape as CanvasNode["data"]["shape"],
+            },
+          };
+          nodeChanges.push({ type: "add", item: newNode });
+        } else if (op.action === "delete_node") {
+          nodeChanges.push({ type: "remove", id: op.nodeId });
+        } else if (op.action === "move_node") {
+          nodeChanges.push({ type: "position", id: op.nodeId, position: { x: op.x, y: op.y }, dragging: false });
+        } else if (op.action === "resize_node") {
+          nodeChanges.push({ type: "dimensions", id: op.nodeId, dimensions: { width: op.width, height: op.height }, setAttributes: false });
+        } else if (op.action === "update_node_data") {
+          const existing = nodes.find((n) => n.id === op.nodeId);
+          if (existing) {
+            const updated: CanvasNode = {
+              ...existing,
+              data: {
+                ...existing.data,
+                ...(op.label !== undefined ? { label: op.label } : {}),
+                ...(op.colorFill !== undefined ? { color: op.colorFill as CanvasNode["data"]["color"] } : {}),
+                ...(op.shape !== undefined ? { shape: op.shape as CanvasNode["data"]["shape"] } : {}),
+              },
+            };
+            nodeChanges.push({ type: "replace", id: op.nodeId, item: updated });
+          }
+        } else if (op.action === "add_edge") {
+          const newEdge: CanvasEdge = {
+            id: op.edge.id,
+            type: "canvasEdge",
+            source: op.edge.source,
+            target: op.edge.target,
+            data: { label: op.edge.label },
+          };
+          edgeChanges.push({ type: "add", item: newEdge });
+        } else if (op.action === "delete_edge") {
+          edgeChanges.push({ type: "remove", id: op.edgeId });
+        }
+      }
+
+      if (nodeChanges.length > 0) onNodesChange(nodeChanges);
+      if (edgeChanges.length > 0) onEdgesChange(edgeChanges);
+
+      setTimeout(() => fitView({ padding: 0.15, duration: 500 }), 150);
+    }
   });
 
   function handleTemplateImport(template: CanvasTemplate) {
@@ -443,6 +563,7 @@ function CanvasFlowSurface({
         onClose={closeTemplates}
         onImport={handleTemplateImport}
       />
+      <AiStatusOverlay status={aiStatus} thinking={aiThinking} />
     </div>
   );
 }
@@ -784,3 +905,34 @@ function NodeConnectionHandles() {
   );
 }
 
+interface AiStatusOverlayProps {
+  status: { message: string; phase: "start" | "processing" | "complete" | "error" } | null;
+  thinking: boolean;
+}
+
+function AiStatusOverlay({ status, thinking }: AiStatusOverlayProps) {
+  if (!status && !thinking) return null;
+
+  const phaseColor =
+    status?.phase === "error"
+      ? "border-state-error/40 bg-state-error/10 text-state-error"
+      : status?.phase === "complete"
+      ? "border-state-success/40 bg-state-success/10 text-state-success"
+      : "border-accent-ai/30 bg-accent-ai/10 text-accent-ai-text";
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-5 z-20 -translate-x-1/2">
+      <div
+        className={cn(
+          "flex items-center gap-2.5 rounded-full border px-4 py-2 text-sm font-medium shadow-xl backdrop-blur-sm",
+          phaseColor
+        )}
+      >
+        {thinking && status?.phase !== "complete" && status?.phase !== "error" && (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+        )}
+        <span>{status?.message ?? "AI is thinking…"}</span>
+      </div>
+    </div>
+  );
+}

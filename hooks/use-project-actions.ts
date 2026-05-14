@@ -116,6 +116,7 @@ export function useProjectActions() {
 
     closeDialog();
     router.push(`/editor/${project.id}`);
+    router.refresh();
   }
 
   async function handleRenameProject() {
