@@ -1,7 +1,9 @@
 import { schemaTask, logger, metadata } from "@trigger.dev/sdk";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { put } from "@vercel/blob";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_AI_API_KEY });
 
@@ -120,19 +122,35 @@ export const generateSpec = schemaTask({
 
       specContent = text.trim();
 
+      metadata.set("status", "saving").set("progress", 80);
+
+      const blob = await put(
+        `specs/${projectId}/${Date.now()}.md`,
+        specContent,
+        { access: "private", contentType: "text/markdown", allowOverwrite: false }
+      );
+
+      const specRecord = await prisma.projectSpec.create({
+        data: {
+          projectId,
+          filePath: blob.url,
+        },
+      });
+
       metadata.set("status", "complete").set("progress", 100);
+
+      logger.info("generate-spec complete", {
+        projectId,
+        roomId,
+        specId: specRecord.id,
+        specLength: specContent.length,
+      });
+
+      return { spec: specContent, specId: specRecord.id };
     } catch (err) {
       logger.error("Spec generation failed", { projectId, roomId, err });
       metadata.set("status", "error").set("progress", 0);
       throw err;
     }
-
-    logger.info("generate-spec complete", {
-      projectId,
-      roomId,
-      specLength: specContent.length,
-    });
-
-    return { spec: specContent };
   },
 });

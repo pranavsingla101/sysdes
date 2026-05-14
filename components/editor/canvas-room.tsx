@@ -264,8 +264,14 @@ function CanvasFlowSurface({
     setChatMessages,
     setSenderName,
     registerSendMessage,
+    registerGetCanvasSnapshot,
   } = useAiRoom();
   const hasLoadedRef = useRef(false);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const self = useSelf();
   const rawMessages = useStorage((root) => root.aiChat);
@@ -291,6 +297,13 @@ function CanvasFlowSurface({
   useEffect(() => {
     registerSendMessage(sendToStorage);
   }, [sendToStorage, registerSendMessage]);
+
+  useEffect(() => {
+    registerGetCanvasSnapshot(() => ({
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+    }));
+  }, [registerGetCanvasSnapshot]);
 
   useEffect(() => {
     setStatus(autosaveStatus);

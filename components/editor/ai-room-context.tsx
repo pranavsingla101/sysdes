@@ -3,6 +3,11 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
 import type { AiStatusPayload, AiChatMessage } from "@/types/tasks";
 
+interface CanvasSnapshot {
+  nodes: unknown[];
+  edges: unknown[];
+}
+
 interface AiRoomContextValue {
   isAiThinking: boolean;
   latestStatus: AiStatusPayload | null;
@@ -14,6 +19,8 @@ interface AiRoomContextValue {
   setSenderName: (name: string) => void;
   registerSendMessage: (fn: (msg: AiChatMessage) => void) => void;
   sendChatMessage: (msg: AiChatMessage) => void;
+  registerGetCanvasSnapshot: (fn: () => CanvasSnapshot) => void;
+  getCanvasSnapshot: () => CanvasSnapshot;
 }
 
 const AiRoomContext = createContext<AiRoomContextValue | null>(null);
@@ -24,6 +31,7 @@ export function AiRoomProvider({ children }: { children: React.ReactNode }) {
   const [chatMessages, setChatMessagesState] = useState<AiChatMessage[]>([]);
   const [senderName, setSenderNameState] = useState("");
   const sendRef = useRef<((msg: AiChatMessage) => void) | null>(null);
+  const snapshotRef = useRef<(() => CanvasSnapshot) | null>(null);
 
   const setAiThinking = useCallback((thinking: boolean) => {
     setIsAiThinking(thinking);
@@ -49,6 +57,14 @@ export function AiRoomProvider({ children }: { children: React.ReactNode }) {
     sendRef.current?.(msg);
   }, []);
 
+  const registerGetCanvasSnapshot = useCallback((fn: () => CanvasSnapshot) => {
+    snapshotRef.current = fn;
+  }, []);
+
+  const getCanvasSnapshot = useCallback((): CanvasSnapshot => {
+    return snapshotRef.current?.() ?? { nodes: [], edges: [] };
+  }, []);
+
   return (
     <AiRoomContext.Provider
       value={{
@@ -62,6 +78,8 @@ export function AiRoomProvider({ children }: { children: React.ReactNode }) {
         setSenderName,
         registerSendMessage,
         sendChatMessage,
+        registerGetCanvasSnapshot,
+        getCanvasSnapshot,
       }}
     >
       {children}
