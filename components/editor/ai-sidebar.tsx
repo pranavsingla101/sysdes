@@ -62,6 +62,11 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
   const [specRunId, setSpecRunId] = useState<string | undefined>(undefined);
   const [specToken, setSpecToken] = useState<string | undefined>(undefined);
   const [specGenError, setSpecGenError] = useState<string | null>(null);
+
+  // Track the design-agent run to detect failures
+  const [designRunId, setDesignRunId] = useState<string | undefined>(undefined);
+  const [designToken, setDesignToken] = useState<string | undefined>(undefined);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -171,6 +176,35 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
     },
   });
 
+  // Track the design-agent run — if it fails without broadcasting Liveblocks events,
+  // reset thinking state and show an error message in the chat
+  useRealtimeRun(designRunId, {
+    accessToken: designToken,
+    enabled: !!designRunId && !!designToken,
+    onComplete: (run, err) => {
+      setDesignRunId(undefined);
+      setDesignToken(undefined);
+      const failed =
+        err ||
+        run.status === "FAILED" ||
+        run.status === "CRASHED" ||
+        run.status === "SYSTEM_FAILURE" ||
+        run.status === "INTERRUPTED" ||
+        run.status === "TIMED_OUT";
+      if (failed) {
+        setAiThinking(false);
+        const errorMsg: AiChatMessage = {
+          id: `${Date.now()}-err`,
+          sender: "Sysdes AI",
+          role: "assistant",
+          content: "Something went wrong on my end. Please try again.",
+          timestamp: Date.now(),
+        };
+        sendChatMessage(errorMsg);
+      }
+    },
+  });
+
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -209,9 +243,31 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
       }
+
+      const { runId } = await res.json() as { runId: string };
+
+      // Fetch a realtime token so we can detect task failures
+      const tokenRes = await fetch("/api/ai/design/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId }),
+      });
+      if (tokenRes.ok) {
+        const { token } = await tokenRes.json() as { token: string };
+        setDesignRunId(runId);
+        setDesignToken(token);
+      }
     } catch {
       // API failed before the task even started — reset thinking so the user can retry
       setAiThinking(false);
+      const errorMsg: AiChatMessage = {
+        id: `${Date.now()}-err`,
+        sender: "Sysdes AI",
+        role: "assistant",
+        content: "Something went wrong on my end. Please try again.",
+        timestamp: Date.now(),
+      };
+      sendChatMessage(errorMsg);
     }
   }
 

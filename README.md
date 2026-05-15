@@ -1,37 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SYSDES
+
+**Design systems at the speed of thought.**
+
+Describe your architecture in plain English. SYSDES maps it to a shared canvas your whole team can refine in real time.
+
+![Landing Page](DOCS/Screenshots/landing-page-readme.png)
+
+---
+
+## What It Does
+
+SYSDES is an AI-powered system design tool. You describe what you want to build — the AI generates a live, editable architecture diagram on a shared canvas. Your team collaborates on it in real time, then exports a complete Markdown technical spec directly from the graph.
+
+**Core workflow:**
+
+1. Sign in and create a project
+2. Prompt the AI to generate an architecture
+3. Collaborate on the canvas with your team
+4. Export a Markdown technical spec
+
+---
+
+## Features
+
+### 🤖 AI Architecture Generation
+
+Describe your system in plain English. The AI generates structured nodes and edges directly into the shared canvas via a durable background task — no timeouts, no dropped requests.
+
+![AI Analyzing Request](DOCS/Screenshots/AI-analyzing-request-readme.png)
+
+![Generating Architecture](DOCS/Screenshots/editor-generating-architecture-readme.png)
+
+### 🖊️ Real-Time Collaborative Canvas
+
+Live cursors, presence indicators, and shared node/edge editing — multiple users working on the same canvas simultaneously.
+
+![Editor with Architecture](DOCS/Screenshots/editor-project-readme.png)
+
+### 📋 Instant Spec Generation
+
+Export a complete Markdown technical specification from the current canvas graph. Specs are persisted and available for download.
+
+### 🗂️ Starter Templates
+
+Import prebuilt system design templates (monolith, microservices, event-driven, serverless, and more) into any canvas at any time.
+
+![Editor](DOCS/Screenshots/editor-readme.png)
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Role |
+|---|---|---|
+| Framework | **Next.js 16 + TypeScript** | Full-stack app with server/client boundaries |
+| UI | **Tailwind CSS + shadcn/ui** | Component composition and styling |
+| Auth | **Clerk** | User identity and route protection |
+| Database | **Prisma + PostgreSQL** | Projects, collaborators, specs, task run records |
+| Canvas | **Liveblocks + React Flow** | Real-time collaborative canvas, presence, cursors |
+| Background Tasks | **Trigger.dev** | Durable AI generation workflows |
+| Artifact Storage | **Vercel Blob** | Canvas snapshots and generated Markdown specs |
+| AI | **Claude (Anthropic)** | Architecture generation and spec writing |
+
+---
+
+## Architecture
+
+```
+app/api          → Authenticated request handlers — validation, auth, task triggering
+trigger/         → Long-running background jobs — AI design + spec generation
+lib/             → Shared infrastructure — Prisma client, access control, utilities
+components/      → UI — canvas surfaces, sidebars, dialogs, interactive elements
+prisma/          → Schema, migrations, generated client
+```
+
+**Storage split:**
+- **PostgreSQL** — project metadata, ownership, collaborators, spec records, task run records
+- **Vercel Blob** — canvas snapshots (`canvas/{projectId}.json`) and specs (`specs/{projectId}/{specId}.md`)
+
+**AI generation pipeline:**
+- User prompt → API route → Trigger.dev background task → Claude generates nodes/edges → written into shared Liveblocks room
+- Canvas graph → Trigger.dev background task → Claude writes Markdown spec → saved to Vercel Blob → linked in database
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+
+- PostgreSQL database
+- Accounts for: Clerk, Liveblocks, Trigger.dev, Vercel Blob, Anthropic
+
+### Environment Variables
+
+```env
+# Auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Database
+DATABASE_URL=
+DIRECT_DATABASE_URL=
+
+# Liveblocks
+LIVEBLOCKS_SECRET_KEY=
+
+# Trigger.dev
+TRIGGER_SECRET_KEY=
+
+# Vercel Blob
+BLOB_READ_WRITE_TOKEN=
+
+# AI
+ANTHROPIC_API_KEY=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Install and Run
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npx prisma migrate dev
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+For background tasks, in a separate terminal:
 
-## Learn More
+```bash
+npx trigger.dev@latest dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/                  Next.js app router — pages and API routes
+components/
+  editor/             Canvas editor, AI sidebar, toolbar
+  ui/                 shadcn/ui base components
+hooks/                Custom React hooks
+lib/                  Prisma client, auth helpers, utilities
+prisma/               Schema and migrations
+trigger/              Trigger.dev background task definitions
+DOCS/                 Architecture, standards, and progress tracking
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# SysDes
+MIT

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 import type { SerializedProject } from "@/lib/project-api";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,11 @@ export function useProjectDialogs() {
 
 export function ProjectDialogsProvider({
   children,
-  ownedProjects,
+  ownedProjects: initialOwned,
   sharedProjects,
 }: ProjectDialogsProviderProps) {
-  const controller = useProjectActions();
+  const [ownedProjects, setOwnedProjects] = useState(initialOwned);
+  const controller = useProjectActions({ setOwnedProjects });
   const { dialogState } = controller;
 
   return (

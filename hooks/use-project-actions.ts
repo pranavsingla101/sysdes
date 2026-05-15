@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { SerializedProject } from "@/lib/project-api";
 
@@ -52,7 +52,11 @@ function isActiveWorkspace(pathname: string, projectId: string) {
     pathname.startsWith(`/editor/${projectId}/`);
 }
 
-export function useProjectActions() {
+interface UseProjectActionsOptions {
+  setOwnedProjects: Dispatch<SetStateAction<SerializedProject[]>>;
+}
+
+export function useProjectActions({ setOwnedProjects }: UseProjectActionsOptions) {
   const router = useRouter();
   const pathname = usePathname();
   const [mode, setMode] = useState<ProjectDialogMode | null>(null);
@@ -105,57 +109,48 @@ export function useProjectActions() {
     const name = projectName.trim() || "Untitled Project";
     const project = await fetch("/api/projects", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id: roomIdPreview,
-        name,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: roomIdPreview, name }),
     }).then(readProjectMutationResponse);
 
+    setOwnedProjects((prev) => [...prev, project]);
     closeDialog();
     router.push(`/editor/${project.id}`);
-    router.refresh();
   }
 
   async function handleRenameProject() {
-    if (!selectedProject) {
-      return;
-    }
+    if (!selectedProject) return;
 
+    const updatedName = projectName.trim() || selectedProject.name;
     await fetch(`/api/projects/${selectedProject.id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: projectName.trim() || selectedProject.name,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: updatedName }),
     }).then(readProjectMutationResponse);
 
+    setOwnedProjects((prev) =>
+      prev.map((p) =>
+        p.id === selectedProject.id ? { ...p, name: updatedName } : p
+      )
+    );
     closeDialog();
-    router.refresh();
   }
 
   async function handleDeleteProject() {
-    if (!selectedProject) {
-      return;
-    }
+    if (!selectedProject) return;
 
     await fetch(`/api/projects/${selectedProject.id}`, {
       method: "DELETE",
     }).then(readProjectMutationResponse);
 
-    const shouldRedirect = isActiveWorkspace(pathname, selectedProject.id);
+    const deletedId = selectedProject.id;
+    const shouldRedirect = isActiveWorkspace(pathname, deletedId);
+    setOwnedProjects((prev) => prev.filter((p) => p.id !== deletedId));
     closeDialog();
 
     if (shouldRedirect) {
       router.replace("/editor");
-      return;
     }
-
-    router.refresh();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
