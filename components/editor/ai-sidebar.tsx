@@ -187,10 +187,9 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
       const failed =
         err ||
         run.status === "FAILED" ||
-        run.status === "CRASHED" ||
-        run.status === "SYSTEM_FAILURE" ||
-        run.status === "INTERRUPTED" ||
-        run.status === "TIMED_OUT";
+        run.status === "TIMED_OUT" ||
+        run.status === "CANCELED" ||
+        run.status === "EXPIRED";
       if (failed) {
         setAiThinking(false);
         const errorMsg: AiChatMessage = {
