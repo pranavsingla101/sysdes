@@ -21,6 +21,14 @@ export function PresenceAvatars() {
   useEffect(() => {
     if (!isOpen) return;
     function onPointerDown(e: PointerEvent) {
+      const target = e.target;
+      if (
+        target instanceof Element &&
+        target.closest('[class*="cl-userButtonPopover"]')
+      ) {
+        return;
+      }
+
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }

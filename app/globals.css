@@ -136,3 +136,45 @@
     @apply font-sans;
   }
 }
+
+/* Auth page animations */
+@keyframes auth-particle {
+  from { opacity: 0.15; transform: translateY(0px); }
+  to   { opacity: 0.5;  transform: translateY(-6px); }
+}
+
+@keyframes auth-node-pulse {
+  from { opacity: 0.35; }
+  to   { opacity: 0.9;  }
+}
+
+/* Force Clerk social button text to be visible regardless of Clerk's internal theme */
+.cl-socialButtonsBlockButtonText,
+[class*="cl-socialButtonsBlockButtonText"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Fix browser autofill overriding dark input backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 60px var(--bg-subtle) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+}
+
+/* Keep Clerk user menu actions visible and clickable on dark hover states. */
+.cl-userButtonPopoverActionButton:hover,
+.cl-userButtonPopoverActionButton:focus-visible {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+.cl-userButtonPopoverActionButton:hover .cl-userButtonPopoverActionButtonText,
+.cl-userButtonPopoverActionButton:focus-visible .cl-userButtonPopoverActionButtonText,
+.cl-userButtonPopoverActionButton:hover .cl-userButtonPopoverActionButtonIcon,
+.cl-userButtonPopoverActionButton:focus-visible .cl-userButtonPopoverActionButtonIcon {
+  color: var(--text-primary) !important;
+  opacity: 1 !important;
+}

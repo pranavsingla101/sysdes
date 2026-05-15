@@ -228,12 +228,12 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
       {/* Header */}
       <div className="flex shrink-0 items-start justify-between border-b border-border-default px-7 py-6">
         <div className="flex gap-4">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-ai/20 text-accent-ai">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-primary/20 text-accent-primary">
             <Bot className="h-5 w-5" />
             {isAiThinking && (
               <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-ai opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-accent-ai" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-primary opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-accent-primary" />
               </span>
             )}
           </div>
@@ -243,7 +243,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
             </h2>
             <p className="text-base font-medium text-text-muted">
               {isAiThinking ? (
-                <span className="flex items-center gap-1.5 text-accent-ai-text">
+                <span className="flex items-center gap-1.5 text-accent-primary">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Working…
                 </span>
@@ -266,8 +266,8 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
 
       {/* ai-status-feed: latest status message */}
       {latestStatus?.text && (
-        <div className="shrink-0 border-b border-border-default bg-accent-ai/5 px-7 py-3">
-          <p className="text-sm font-medium text-accent-ai-text leading-relaxed">
+        <div className="shrink-0 border-b border-border-default bg-accent-primary/5 px-7 py-3">
+          <p className="text-sm font-medium text-accent-primary leading-relaxed">
             {latestStatus.text}
           </p>
         </div>
@@ -285,7 +285,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
               className={cn(
                 "flex-1 rounded-xl text-base font-medium transition-colors",
                 activeTab === "architect"
-                  ? "bg-accent-ai text-white"
+                  ? "bg-accent-primary text-bg-base"
                   : "text-text-muted hover:text-text-primary"
               )}
             >
@@ -296,7 +296,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
               className={cn(
                 "flex-1 rounded-xl text-base font-medium transition-colors",
                 activeTab === "specs"
-                  ? "bg-accent-ai text-white"
+                  ? "bg-accent-primary text-bg-base"
                   : "text-text-muted hover:text-text-primary"
               )}
             >
@@ -315,7 +315,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
               {chatMessages.length === 0 ? (
                 /* Empty State */
                 <div className="flex flex-col items-center justify-center gap-6 py-12 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-accent-ai/10 text-accent-ai">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-accent-primary/10 text-accent-primary">
                     <Bot className="h-8 w-8" />
                   </div>
                   <div className="grid gap-2">
@@ -333,7 +333,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                         type="button"
                         disabled={isAiThinking}
                         onClick={() => setPrompt(starter)}
-                        className="rounded-full bg-bg-subtle px-4 py-2 text-sm font-medium text-accent-ai-text transition hover:bg-bg-elevated hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        className="rounded-full bg-bg-subtle px-4 py-2 text-sm font-medium text-accent-primary transition hover:bg-bg-elevated hover:text-text-primary disabled:pointer-events-none disabled:opacity-40"
                       >
                         {starter}
                       </button>
@@ -354,12 +354,12 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                           className={cn(
                             "max-w-[85%] rounded-3xl px-5 py-4 shadow-sm",
                             isOwn
-                              ? "border-2 border-accent-ai/50 bg-accent-ai/10 text-text-primary shadow-accent-ai/5"
+                              ? "border-2 border-accent-primary/50 bg-accent-primary/10 text-text-primary shadow-accent-primary/5"
                               : "border border-border-default bg-bg-elevated text-text-primary shadow-bg-base/50"
                           )}
                         >
                           {!isOwn && (
-                            <p className="mb-1 text-xs font-semibold text-accent-ai-text">
+                            <p className="mb-1 text-xs font-semibold text-accent-primary">
                               {msg.sender}
                             </p>
                           )}
@@ -381,11 +381,11 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                   {isAiThinking && (
                     <div className="flex justify-start">
                       <div className="max-w-[85%] rounded-3xl border border-border-default bg-bg-elevated px-5 py-4 shadow-sm shadow-bg-base/50">
-                        <p className="mb-1 text-xs font-semibold text-accent-ai-text">
+                        <p className="mb-1 text-xs font-semibold text-accent-primary">
                           Sysdes AI
                         </p>
                         <p className="flex items-center gap-2 text-base font-medium leading-relaxed text-text-muted">
-                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-ai" />
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-primary" />
                           Sysdes AI is analyzing your request…
                         </p>
                       </div>
@@ -403,8 +403,8 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
               className={cn(
                 "relative flex items-end gap-3 rounded-[2rem] border bg-bg-elevated p-3 transition-all",
                 isAiThinking
-                  ? "border-accent-ai/30 opacity-70"
-                  : "border-border-default focus-within:border-accent-ai/50 focus-within:ring-1 focus-within:ring-accent-ai/30"
+                  ? "border-accent-primary/30 opacity-70"
+                  : "border-border-default focus-within:border-accent-primary/50 focus-within:ring-1 focus-within:ring-accent-primary/30"
               )}
             >
               <Textarea
@@ -427,7 +427,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                 size="icon"
                 disabled={!prompt.trim() || isAiThinking}
                 onClick={handleSend}
-                className="h-10 w-10 shrink-0 rounded-full bg-accent-ai text-white shadow-lg shadow-accent-ai/20 transition-all hover:bg-accent-ai/90 disabled:opacity-50"
+                className="h-10 w-10 shrink-0 rounded-full bg-accent-primary text-bg-base shadow-lg shadow-accent-primary/20 transition-all hover:bg-accent-primary/90 disabled:opacity-50"
               >
                 {isAiThinking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -455,7 +455,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
               <Button
                 disabled={isAiThinking || isSpecInProgress}
                 onClick={handleGenerateSpec}
-                className="h-12 w-full gap-2 rounded-2xl bg-accent-ai text-base font-semibold text-white shadow-lg shadow-accent-ai/20 hover:bg-accent-ai/90 disabled:opacity-50"
+                className="h-12 w-full gap-2 rounded-2xl bg-accent-primary text-base font-semibold text-bg-base shadow-lg shadow-accent-primary/20 hover:bg-accent-primary/90 disabled:opacity-50"
               >
                 {isSpecInProgress ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -471,9 +471,9 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
 
               {/* Tracking status banner */}
               {specStatus === "tracking" && (
-                <div className="flex items-center gap-2 rounded-2xl border border-accent-ai/20 bg-accent-ai/5 px-4 py-3">
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-ai-text" />
-                  <p className="text-sm font-medium text-accent-ai-text">
+                <div className="flex items-center gap-2 rounded-2xl border border-accent-primary/20 bg-accent-primary/5 px-4 py-3">
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent-primary" />
+                  <p className="text-sm font-medium text-accent-primary">
                     {typeof specRun?.metadata?.status === "string"
                       ? specRun.metadata.status
                       : "AI is writing your spec…"}
@@ -543,9 +543,9 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                         key={spec.id}
                         type="button"
                         onClick={() => openSpecPreview(spec)}
-                        className="group flex items-center gap-3 rounded-2xl border border-border-default bg-bg-elevated px-4 py-3 text-left transition hover:border-accent-ai/30 hover:bg-bg-subtle"
+                        className="group flex items-center gap-3 rounded-2xl border border-border-default bg-bg-elevated px-4 py-3 text-left transition hover:border-accent-primary/30 hover:bg-bg-subtle"
                       >
-                        <FileText className="h-4 w-4 shrink-0 text-accent-ai-text" />
+                        <FileText className="h-4 w-4 shrink-0 text-accent-primary" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-text-primary">
                             {spec.filename}
@@ -638,7 +638,7 @@ export function AiSidebar({ isOpen, onClose, projectId, roomId }: AiSidebarProps
                   "prose-strong:text-text-primary prose-strong:font-semibold",
                   "prose-em:text-text-secondary",
                   // Code inline
-                  "prose-code:rounded prose-code:bg-bg-subtle prose-code:px-1.5 prose-code:py-0.5 prose-code:text-accent-ai-text prose-code:text-[0.85em] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none",
+                  "prose-code:rounded prose-code:bg-bg-subtle prose-code:px-1.5 prose-code:py-0.5 prose-code:text-accent-primary prose-code:text-[0.85em] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none",
                   // Code blocks
                   "prose-pre:rounded-2xl prose-pre:bg-bg-elevated prose-pre:border prose-pre:border-border-default prose-pre:p-5",
                   "prose-pre:text-text-secondary prose-pre:text-sm",

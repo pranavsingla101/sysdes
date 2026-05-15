@@ -46,20 +46,31 @@ const clerkAppearance = {
     card: "bg-bg-surface shadow-none border-0 px-8 py-8 sm:px-10",
     headerTitle: "text-text-primary font-semibold tracking-normal",
     headerSubtitle: "text-text-muted",
+    badge: "!hidden",
+    socialButtonsBlock: "w-full flex flex-col gap-2",
     socialButtonsBlockButton:
-      "bg-bg-surface border-border-default text-text-secondary hover:bg-bg-elevated hover:text-text-primary",
+      "w-full bg-bg-elevated border border-border-default text-text-secondary hover:bg-bg-subtle hover:text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
     dividerLine: "bg-border-default",
-    dividerText: "text-text-muted",
+    dividerText: "text-text-muted text-xs",
     formFieldLabel: "text-text-primary font-medium",
     formFieldInput:
-      "bg-bg-subtle border-border-default text-text-primary placeholder:text-text-muted focus:border-accent-primary focus:ring-accent-primary",
+      "w-full bg-bg-subtle border-border-default text-text-primary placeholder:text-text-muted focus:border-accent-primary focus:ring-1 focus:ring-accent-primary",
     formButtonPrimary:
-      "bg-accent-primary text-bg-base font-semibold hover:bg-accent-primary",
-    footer: "bg-bg-elevated border-t border-border-default",
-    footerActionText: "text-text-secondary",
+      "bg-accent-primary text-bg-base font-semibold shadow-[0_0_20px_rgba(0,200,212,0.3)] hover:shadow-[0_0_28px_rgba(0,200,212,0.45)] transition-shadow",
+    footer: "bg-transparent border-t border-border-default/50",
+    footerActionText: "text-text-muted",
     footerActionLink: "text-accent-primary hover:text-accent-primary",
     identityPreviewText: "text-text-primary",
     identityPreviewEditButton: "text-accent-primary",
+    userButtonPopoverCard:
+      "bg-bg-surface border border-border-default text-text-primary shadow-2xl shadow-bg-base/70",
+    userButtonPopoverActionButton:
+      "text-text-secondary hover:bg-bg-elevated hover:text-text-primary focus:bg-bg-elevated focus:text-text-primary",
+    userButtonPopoverActionButtonIcon:
+      "text-text-muted group-hover:text-text-primary group-focus:text-text-primary",
+    userButtonPopoverActionButtonText:
+      "text-text-secondary group-hover:text-text-primary group-focus:text-text-primary",
+    userButtonPopoverFooter: "bg-bg-surface border-t border-border-default/50",
   },
 };
 
